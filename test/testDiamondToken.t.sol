@@ -7,6 +7,7 @@ import "../contracts/facets/DiamondLoupeFacet.sol";
 import "../contracts/facets/OwnershipFacet.sol";
 import "../contracts/facets/DiamondTokenFacet.sol";
 import "../contracts/facets/NameFacet.sol";
+import "../contracts/upgradeInitializers/DiamondInit.sol";
 import "../contracts/Diamond.sol";
 
 import "forge-std/Test.sol";
@@ -18,6 +19,7 @@ contract DiamondDeployer is Test, IDiamondCut {
     DiamondLoupeFacet dLoupe;
     OwnershipFacet ownerF;
     DiamondTokenFacet tokenF;
+    DiamondInit dInit;
 
     // NameFacet used for upgrade.
     NameFacet nameF;
@@ -29,11 +31,12 @@ contract DiamondDeployer is Test, IDiamondCut {
         dLoupe = new DiamondLoupeFacet();
         ownerF = new OwnershipFacet();
         tokenF = new DiamondTokenFacet();
+        dInit = new DiamondInit();
 
         //upgrade diamond with facets
 
         //build cut struct
-        FacetCut[] memory cut = new FacetCut[](3);
+        FacetCut[] memory cut = new FacetCut[](4);
 
         cut[0] = (
             FacetCut({
@@ -59,11 +62,19 @@ contract DiamondDeployer is Test, IDiamondCut {
             })
         );
 
+        cut[3] = (
+            FacetCut({
+                facetAddress: address(dInit),
+                action: FacetCutAction.Add,
+                functionSelectors: generateSelectors("DiamondInit")
+            })
+        );
+
         //upgrade diamond
         IDiamondCut(address(diamond)).diamondCut(cut, address(0x0), "");
         
-        //Initialize the token
-        DiamondTokenFacet(address(diamond)).initializer();
+        //Initialization
+        DiamondInit(address(diamond)).init();
     }
 
     function testDiamondToken() public {
@@ -77,8 +88,9 @@ contract DiamondDeployer is Test, IDiamondCut {
     }
 
     // multiple initialization should fail
-    function testFailMultipleInitialize() public {
-        DiamondTokenFacet(address(diamond)).initializer();
+    function testMultipleInitialize() public {
+        vm.expectRevert(AlreadyInitialized.selector);
+        DiamondInit(address(diamond)).init();
     }
 
     // upgrade test with new `NameFacet`

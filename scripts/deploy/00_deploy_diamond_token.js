@@ -1,5 +1,9 @@
-const { getSelectors, FacetCutAction } = require('./libraries/diamond.js')
+const hre = require('hardhat')
+const fs = require('fs')
+const path = require('path')
+const { getSelectors, FacetCutAction } = require('../libraries/diamond.js')
 const { ethers } = require('hardhat')
+
 async function deployDiamond() {
   const accounts = await ethers.getSigners()
   const contractOwner = accounts[0]
@@ -17,7 +21,11 @@ async function deployDiamond() {
     diamondCutFacet.address,
   )
   await diamond.deployed()
-  console.log('Diamond deployed:', diamond.address)
+  const diamondAddress = diamond.address
+  console.log('Diamond deployed:', diamondAddress)
+  const file = path.join(__dirname, '../deploymentAddresses.json' )
+  const addresses = JSON.parse(fs.readFileSync(file))
+  fs.writeFileSync(file, JSON.stringify({...addresses, [hre.network.name]: diamondAddress }))
 
   // deploy DiamondInit
   // DiamondInit provides a function that is called when the diamond is upgraded to initialize state variables
@@ -30,7 +38,7 @@ async function deployDiamond() {
   // deploy facets
   console.log('')
   console.log('Deploying facets')
-  const FacetNames = ['DiamondLoupeFacet', 'OwnershipFacet']
+  const FacetNames = ['DiamondLoupeFacet', 'OwnershipFacet', 'DiamondTokenFacet']
   const cut = []
   for (const FacetName of FacetNames) {
     const Facet = await ethers.getContractFactory(FacetName)
@@ -47,7 +55,7 @@ async function deployDiamond() {
   // upgrade diamond with facets
   console.log('')
   console.log('Diamond Cut:', cut)
-  const diamondCut = await ethers.getContractAt('IDiamondCut', diamond.address)
+  const diamondCut = await ethers.getContractAt('IDiamondCut', diamondAddress)
   let tx
   let receipt
   // call to init function
@@ -59,7 +67,7 @@ async function deployDiamond() {
     throw Error(`Diamond upgrade failed: ${tx.hash}`)
   }
   console.log('Completed diamond cut')
-  return diamond.address
+  return diamondAddress
 }
 
 // We recommend this pattern to be able to use async/await everywhere
