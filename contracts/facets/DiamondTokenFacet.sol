@@ -7,17 +7,8 @@ import {LibERC20} from "../libraries/LibERC20.sol";
 import "../interfaces/IERC20.sol";
 
 error InsufficientAllowance();
-error AlreadyInitialized();
 contract DiamondTokenFacet is IERC20 {
     TokenStorage s;
-
-    /// @notice initializes the token contract.
-    /// @dev this procedure should only be called once.
-    function initializer() external {
-        if(s.initialized == 1) revert AlreadyInitialized();
-        s.totalSupply = 1_000_000e18;
-        s.initialized = 1;
-    }
 
     /// @notice returns the name of the token.
     function name() external pure override returns(string memory) {

@@ -2,3 +2,4 @@ out
 artifacts
 node_modules
 cache
+.env
