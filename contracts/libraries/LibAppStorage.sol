@@ -6,6 +6,7 @@ struct TokenStorage {
     uint256 totalSupply;
     mapping(address => uint256) balances;
     mapping(address => mapping(address => uint256)) allowances;
+    mapping(address => uint256) nonces;
 }
 
 library LibAppStorage {
